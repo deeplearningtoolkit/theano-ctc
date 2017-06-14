@@ -58,23 +58,26 @@ class CtcBase(Op):
   def c_support_code(self):
     return """
 
-template <typename T, typename FreeFunc = void (*)(void*)>  // A smart pointer for malloc/free
+template <typename T>  // A smart pointer for new/delete
 struct SmartPtr {
-  T ptr;
-  FreeFunc freeFunc_;
-  SmartPtr(FreeFunc freeFunc = free) : ptr(0), freeFunc_(freeFunc) {}
-  SmartPtr(T p, FreeFunc freeFunc = free) : ptr(p), freeFunc_(freeFunc) {}
+  T ptr;  
+  SmartPtr() : ptr(0) {}
+  SmartPtr(T p) : ptr(p) {}
   SmartPtr& operator= (T p) { ptr = p; return *this; }
   operator T() { return ptr; }
-  ~SmartPtr() { if (ptr != 0)  freeFunc_(ptr); }
+  ~SmartPtr() {     
+    if (ptr != 0)  {
+      delete[] ptr;
+    }
+  }
 };
 
 void flattenLabels(PyArrayObject* labelMatrix, SmartPtr<int*> &flatLabels, SmartPtr<int*>& labelT) {
   int m = PyArray_DIMS(labelMatrix)[0];
   int n = PyArray_DIMS(labelMatrix)[1];
 
-  flatLabels = (int*) malloc( m * n * sizeof(int) );  // allocate max size; okay if not filled
-  labelT = (int*) malloc( m * sizeof(int) );
+  flatLabels = new int[ m * n ];  // allocate max size; okay if not filled
+  labelT = new int[m];
 
   int f = 0;
   for (int i = 0; i < m; ++i) {
@@ -94,7 +97,7 @@ void flattenLabels(PyArrayObject* labelMatrix, SmartPtr<int*> &flatLabels, Smart
 void createContiguousInputLengths(PyArrayObject* inputLengthsArray, SmartPtr<int*>& inputLengths) {
   int m = PyArray_DIMS(inputLengthsArray)[0];
 
-  inputLengths = (int*) malloc( m * sizeof(int) );
+  inputLengths = new int[m];
 
   for (int i = 0; i < m; ++i) {
     inputLengths[i] = *((int*)PyArray_GETPTR1(inputLengthsArray, i));

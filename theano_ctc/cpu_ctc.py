@@ -71,7 +71,7 @@ class CpuCtc(CtcBase):
                                int minibatch,
                                float *costs,
                                void *workspace,
-                               ctcComputeInfo info);
+                               ctcOptions info);
 
   """
 
@@ -85,10 +85,11 @@ class CpuCtc(CtcBase):
     if self.computeGradient:
       gradients = outNames[1]
 
-    return (("""
-ctcComputeInfo computeInfo;
+    return (("""    
+ctcOptions computeInfo;
 computeInfo.loc = CTC_CPU;
-computeInfo.num_threads = 1;
+computeInfo.num_threads = 4;
+computeInfo.blank_label = 0;
 
 // INPUTS -----------
 
@@ -174,7 +175,7 @@ if (status != CTC_STATUS_SUCCESS) {
   %(fail)s;
 }
 
-ctc_cpu_workspace = malloc(cpu_workspace_size);
+ctc_cpu_workspace = new int[cpu_workspace_size];
 
 status = 
   compute_ctc_loss(acts, gradients, flat_labels, label_lengths, input_lengths, alphabet_size,
@@ -186,6 +187,7 @@ if (status != CTC_STATUS_SUCCESS) {
   std::cout << "warpctc.compute_ctc_loss() exited with status " << status << std::endl;
   %(fail)s;
 }
+
     """)) % locals()
 
 # Disable gradient computation if not needed
